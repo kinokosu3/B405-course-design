@@ -1,5 +1,5 @@
 #include <8052.h>
-
+#include <string.h>
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 0x01
@@ -11,14 +11,24 @@
 // sbit led1 = P1 ^ 1;
 uchar buf;
 unsigned char Buff[20]; //数据缓冲区
-uchar address_ok = 1;
+uchar DATA[] = {"hello world"}
+uchar address_ok;
 uchar RECE_status;
-uchar address_status;
+uchar address_status, command_status;
+
+void delay_1ms(unsigned int i)
+{
+    unsigned int x, y;
+    for (x = i; x > 0; x--)
+        for (y = 110; y > 0; y--)
+            ;
+}
 
 void init()
 {
     // SCON = 0x50;
-    SCON = 0xd0; //串口工作于方式3
+    // SCON = 0xd0; //串口工作于方式3
+    SCON = 0xf0;
     PCON = 0x00;
 
     TMOD = 0x20;
@@ -37,13 +47,22 @@ void main(void)
         
         SM2 = 1;
         address_status = 1;
-        while (address_ok)
-            continue;
+        command_status = 0;
+        address_ok = 1;
+        led=1;
+        while (address_ok);
         SBUF = addr1;
         while (!TI)
             ;
         TI = 0;
-        led=0;
+        
+
+        SM2 = 0; //开始接收数据帧
+        command_status = 1;
+        delay_1ms(300);
+        if(buf == 0xff){
+            led1=0;
+        }
     }
 }
 
@@ -54,13 +73,20 @@ void serial() __interrupt 4 //串口中断
     {
        if (address_status == 1) //address frame
         {
+            
             buf = SBUF;
             if (buf == addr1)
             {
+                led=0;
                 address_ok = 0;
                 address_status = 0;
             }
         }
+        if(command_status == 1){
+            buf = SBUF;
+            command_status=0;
+        }
+        
         RI = 0;
     }
     ES = 1;

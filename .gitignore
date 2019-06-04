@@ -1,2 +1,11 @@
 .DS_Store
 .vscode/*
+*.lk
+*.lst
+*.map
+*.mem
+*.rel
+*.rst
+*.sym
+*.asm
+*.ihx

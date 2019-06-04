@@ -17,7 +17,6 @@ uchar buf;
 uchar address_ok;
 uchar status, t0_num = 0, time_out, add_flag, address_repeat_flag = 0;
 
-
 void delay_1ms(unsigned int i)
 {
     unsigned int x, y;
@@ -32,7 +31,8 @@ void uartinit(void) //串口初始化
 
     TMOD = 0x21;
     // SCON = 0x50;
-    SCON = 0xd0; //串口工作于方式3
+    // SCON = 0xd0; //串口工作于方式3
+    SCON = 0xf8;
     TL1 = 0xfd;
     TH1 = 0xfd;
     PCON = 0x00;
@@ -40,11 +40,6 @@ void uartinit(void) //串口初始化
     TR1 = 1;
     REN = 1;
     EA = 1;
-
-    // //定时器
-    // ET0 = 1; //开定时器中断
-    // TH0 = (65536 - 50000) / 256;
-    // TL0 = (65536 - 50000) % 256;
 }
 
 void main()
@@ -57,7 +52,7 @@ void main()
         add_flag = 1;
         buf = 0xff;
 
-        while (add_flag)
+        while (add_flag) // 轮询地址
         {
             if (address_repeat_flag == 0)
             {
@@ -76,7 +71,7 @@ void main()
                 TI = 0;
             }
 
-            delay_1ms(200);
+            delay_1ms(100);
             if (address_ok == 1)
             {
                 add_flag = 0;
@@ -88,6 +83,14 @@ void main()
             address_repeat_flag = ~address_repeat_flag;
         }
         led = 0;
+
+        TI = 0;  //发送数据长度
+        TB8 = 0; //发送数据帧
+        SBUF = 0xff;
+        while (!TI)
+            ;
+        TI = 0;
+
     }
 }
 void uart() __interrupt 4 //串口中断
@@ -113,6 +116,7 @@ void uart() __interrupt 4 //串口中断
                 }
             }
         }
+
         RI = 0; // 清空中断
     }
     ES = 1;
