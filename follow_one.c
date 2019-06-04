@@ -7,14 +7,15 @@
 #define _ERR_ 0xf0  //数据传送失败
 #define led P1_0
 #define led1 P1_1
+#define led2 P1_2
 // sbit led = P1 ^ 0;
 // sbit led1 = P1 ^ 1;
 uchar buf;
 unsigned char Buff[20]; //数据缓冲区
-uchar DATA[] = {"hello world"}
+uchar DATA[13] = {"hello world$"};
 uchar address_ok;
 uchar RECE_status;
-uchar address_status, command_status;
+uchar address_status, command_status,i;
 
 void delay_1ms(unsigned int i)
 {
@@ -59,9 +60,16 @@ void main(void)
 
         SM2 = 0; //开始接收数据帧
         command_status = 1;
-        delay_1ms(300);
+        delay_1ms(250);
         if(buf == 0xff){
             led1=0;
+            for ( i = 0; i < strlen(DATA); i++)
+            {
+                TB8=0;
+                SBUF = DATA[i];
+                while(!TI);
+                TI=0;
+            }
         }
     }
 }
@@ -86,7 +94,6 @@ void serial() __interrupt 4 //串口中断
             buf = SBUF;
             command_status=0;
         }
-        
         RI = 0;
     }
     ES = 1;

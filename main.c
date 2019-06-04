@@ -10,12 +10,16 @@ unsigned char Buff[20]; //数据缓冲区
 #define _ERR_ 0xf0  //数据传送失败
 #define led P1_0
 #define led1 P1_1
+#define led2 P1_2
+#define led3 P1_3
+#define led4 P1_4
+#define led5 P1_5
 uchar buf;
 // sbit led = P1 ^ 0;
 // sbit led1 = P1 ^ 1;
 
 uchar address_ok;
-uchar status, t0_num = 0, time_out, add_flag, address_repeat_flag = 0;
+uchar status, t0_num = 0, time_out, add_flag, address_repeat_flag = 0, rev_data_status, j=0;
 
 void delay_1ms(unsigned int i)
 {
@@ -51,7 +55,7 @@ void main()
         address_ok = 0;
         add_flag = 1;
         buf = 0xff;
-
+        rev_data_status = 0;
         while (add_flag) // 轮询地址
         {
             if (address_repeat_flag == 0)
@@ -71,7 +75,7 @@ void main()
                 TI = 0;
             }
 
-            delay_1ms(100);
+            delay_1ms(250);
             if (address_ok == 1)
             {
                 add_flag = 0;
@@ -90,6 +94,19 @@ void main()
         while (!TI)
             ;
         TI = 0;
+
+        rev_data_status = 1;
+        delay_1ms(250);
+        if(Buff[4] == 'o'){
+            led5=0;
+        }
+        if(Buff[0] == 'h'){
+            led4=0;
+        }
+        if(Buff[1] == 'e'){
+            led3=0;
+        }
+
 
     }
 }
@@ -115,6 +132,20 @@ void uart() __interrupt 4 //串口中断
                     address_ok = 1;
                 }
             }
+        }
+        if (rev_data_status == 1)
+        {
+            buf = SBUF;
+            if (buf != '$')
+            {
+                Buff[j] = buf;
+                j++;
+            }
+        }
+        else
+        {
+            rev_data_status = 0;
+            j=0;
         }
 
         RI = 0; // 清空中断
