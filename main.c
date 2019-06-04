@@ -76,7 +76,7 @@ void main()
                 TI = 0;
             }
 
-            delay_1ms(250);
+            delay_1ms(200);
             if (address_ok == 1)
             {
                 add_flag = 0;
