@@ -1,9 +1,12 @@
 #include <8052.h>
-
+#include <string.h>
+// #include "Lcd1602.h"
+// #include "config.h"
 #define uchar unsigned char
 #define uint unsigned int
 volatile unsigned char sending;
-unsigned char Buff[20]; //数据缓冲区
+#define BUFF_MAX 50
+unsigned char Buff[BUFF_MAX]; //数据缓冲区
 #define addr1 0x01
 #define addr2 0x02
 #define _SUCC_ 0x0f //数据传送成功
@@ -18,9 +21,11 @@ uchar buf;
 // sbit led = P1 ^ 0;
 // sbit led1 = P1 ^ 1;
 
-uchar address_ok;
-uchar status, t0_num = 0, time_out, add_flag, address_repeat_flag = 0, rev_data_status, j=0;
-
+uchar address_ok, flag;
+uchar status, t0_num = 0, time_out;
+uchar add_flag, address_repeat_flag = 0, rev_data_status, j = 0;
+uchar smod_status, temp_status;
+uchar i = 0;
 void delay_1ms(unsigned int i)
 {
     unsigned int x, y;
@@ -44,6 +49,15 @@ void uartinit(void) //串口初始化
     TR1 = 1;
     REN = 1;
     EA = 1;
+}
+
+void Clear_Buf(void)
+{
+    unsigned char k;
+    for (k = 0; k < BUFF_MAX; k++) //将缓存内容清零
+    {
+        Buff[k] = 0;
+    }
 }
 
 void main()
@@ -96,18 +110,22 @@ void main()
         TI = 0;
 
         rev_data_status = 1;
-        delay_1ms(250);
-        if(Buff[4] == 'o'){
-            led5=0;
-        }
-        if(Buff[0] == 'h'){
-            led4=0;
-        }
-        if(Buff[1] == 'e'){
-            led3=0;
-        }
+        smod_status = 1;
+        temp_status = 1;
+        flag=0;
+        delay_1ms(300);
 
+        
+        if (rev_data_status == 0)
+        { //发送数据到上位
+        led1 = 0;
+            if(strstr(Buff,"1919ppm")!=NULL)
+                led3=0;
+            if(strstr(Buff,"11.4C")!=NULL)
+                led4=0;
 
+            Clear_Buf();
+        }
     }
 }
 void uart() __interrupt 4 //串口中断
@@ -135,17 +153,21 @@ void uart() __interrupt 4 //串口中断
         }
         if (rev_data_status == 1)
         {
-            buf = SBUF;
-            if (buf != '$')
-            {
-                Buff[j] = buf;
-                j++;
+            // buf = SBUF;
+            // if (buf != '$')
+            // {
+            //     Buff[j] = buf;
+            //     j++;
+            // }
+            Buff[i] = SBUF; //将接收到的字符串存到缓存中
+            if(Buff[i]=='$'){
+                flag++;
             }
-        }
-        else
-        {
-            rev_data_status = 0;
-            j=0;
+            i++;            //缓存指针向后移动
+            if(flag == 2){
+                rev_data_status = 0;
+                i=0;
+            }
         }
 
         RI = 0; // 清空中断
