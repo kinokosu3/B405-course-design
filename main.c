@@ -51,6 +51,21 @@ void uartinit(void) //串口初始化
     EA = 1;
 }
 
+void Leasts_Sends(char *Buff)
+{
+    for (i = 0; i < strlen(Buff); i++)
+    {
+        TB8 = 0;
+        if (Buff[i] != '$')
+        {
+            SBUF = Buff[i];
+            while (!TI)
+                ;
+            TI = 0;
+        }
+    }
+}
+
 void Clear_Buf(void)
 {
     unsigned char k;
@@ -112,18 +127,17 @@ void main()
         rev_data_status = 1;
         smod_status = 1;
         temp_status = 1;
-        flag=0;
+        flag = 0;
         delay_1ms(300);
 
-        
         if (rev_data_status == 0)
         { //发送数据到上位
-        led1 = 0;
-            if(strstr(Buff,"1919ppm")!=NULL)
-                led3=0;
-            if(strstr(Buff,"11.4C")!=NULL)
-                led4=0;
-
+            led1 = 0;
+            if (strstr(Buff, "1919ppm") != NULL)
+                led3 = 0;
+            if (strstr(Buff, "11.4C") != NULL)
+                led4 = 0;
+            Leasts_Sends(Buff);
             Clear_Buf();
         }
     }
@@ -160,13 +174,15 @@ void uart() __interrupt 4 //串口中断
             //     j++;
             // }
             Buff[i] = SBUF; //将接收到的字符串存到缓存中
-            if(Buff[i]=='$'){
+            if (Buff[i] == '$')
+            {
                 flag++;
             }
-            i++;            //缓存指针向后移动
-            if(flag == 2){
+            i++; //缓存指针向后移动
+            if (flag == 2)
+            {
                 rev_data_status = 0;
-                i=0;
+                i = 0;
             }
         }
 

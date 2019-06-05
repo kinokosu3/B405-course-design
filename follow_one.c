@@ -16,7 +16,7 @@ unsigned char Buff[50]; //数据缓冲区
 uchar test_smod[] = {"1919ppm$"};
 uchar test_temp[] = {"11.4C$"};
 uchar address_ok;
-uchar RECE_status;
+uchar RECE_status; 
 uchar address_status, command_status, i;
 
 void delay_1ms(unsigned int i)
