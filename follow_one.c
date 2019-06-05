@@ -2,7 +2,7 @@
 #include <string.h>
 #define uchar unsigned char
 #define uint unsigned int
-#define addr1 0x01
+#define addr1 'a'
 #define _SUCC_ 0x0f //数据传送成功
 #define _ERR_ 0xf0  //数据传送失败
 #define led P1_0
@@ -75,7 +75,7 @@ void main(void)
         command_status = 1;
         delay_1ms(250);
         // 发送数据
-        if (buf == 0xff)
+        if (buf == 'c')
         {
             led1 = 0;
             Sends(test_smod);

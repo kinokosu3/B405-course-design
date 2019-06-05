@@ -7,8 +7,8 @@
 volatile unsigned char sending;
 #define BUFF_MAX 50
 unsigned char Buff[BUFF_MAX]; //数据缓冲区
-#define addr1 0x01
-#define addr2 0x02
+#define addr1 'a'
+#define addr2 'b'
 #define _SUCC_ 0x0f //数据传送成功
 #define _ERR_ 0xf0  //数据传送失败
 #define led P1_0
@@ -83,7 +83,7 @@ void main()
     {
         address_ok = 0;
         add_flag = 1;
-        buf = 0xff;
+        buf = 'a';
         rev_data_status = 0;
         while (add_flag) // 轮询地址
         {
