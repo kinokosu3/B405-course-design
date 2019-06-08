@@ -119,7 +119,7 @@ void main()
 
         TI = 0;  //发送数据长度
         TB8 = 0; //发送数据帧
-        SBUF = 0xff;
+        SBUF = 'c';
         while (!TI)
             ;
         TI = 0;
