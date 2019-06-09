@@ -1,5 +1,7 @@
-#include <8052.h>
+// #include <8052.h>
+#include <reg52.h>
 #include <string.h>
+//#include "STC12C5A.h"
 // #include "Lcd1602.h"
 // #include "config.h"
 #define uchar unsigned char
@@ -11,16 +13,19 @@ unsigned char Buff[BUFF_MAX]; //数据缓冲区
 #define addr2 'b'
 #define _SUCC_ 0x0f //数据传送成功
 #define _ERR_ 0xf0  //数据传送失败
-#define led P1_0
-#define led1 P1_1
-#define led2 P1_2
-#define led3 P1_3
-#define led4 P1_4
-#define led5 P1_5
-uchar buf;
-// sbit led = P1 ^ 0;
-// sbit led1 = P1 ^ 1;
+// #define led P1_0
+// #define led1 P1_1
+// #define led2 P1_2
+// #define led3 P1_3
+// #define led4 P1_4
+// #define led5 P1_5
 
+uchar buf;
+sbit led = P1 ^ 0;
+sbit led1 = P1 ^ 1;
+sbit led2 = P1 ^ 2;
+sbit led3 = P1 ^ 3;
+sbit led4 = P1 ^ 4;
 uchar address_ok, flag;
 uchar status, t0_num = 0, time_out;
 uchar add_flag, address_repeat_flag = 0, rev_data_status, j = 0;
@@ -83,10 +88,12 @@ void main()
     {
         address_ok = 0;
         add_flag = 1;
-        buf = 'a';
+        buf = 0xff;
         rev_data_status = 0;
         while (add_flag) // 轮询地址
         {
+            led1=1;
+            led2=1;
             if (address_repeat_flag == 0)
             {
                 TB8 = 1;
@@ -132,17 +139,18 @@ void main()
 
         if (rev_data_status == 0)
         { //发送数据到上位
-            led1 = 0;
-            if (strstr(Buff, "1919ppm") != NULL)
+            led4 = 0;
+            if (strstr(Buff, "ppm") != NULL)
                 led3 = 0;
-            if (strstr(Buff, "11.4C") != NULL)
-                led4 = 0;
+            // if (strstr(Buff, "11.4C") != NULL)
+            //     led4 = 0;
             Leasts_Sends(Buff);
             Clear_Buf();
         }
     }
 }
-void uart() __interrupt 4 //串口中断
+
+void uart() interrupt 4
 {
     ES = 0;
     if (RI) //  收到数据
@@ -154,6 +162,7 @@ void uart() __interrupt 4 //串口中断
             {
                 if (buf == addr1)
                 {
+                    led1=0;
                     address_ok = 1;
                 }
             }
@@ -161,25 +170,20 @@ void uart() __interrupt 4 //串口中断
             {
                 if (buf == addr2)
                 {
+                    led2=0;
                     address_ok = 1;
                 }
             }
         }
         if (rev_data_status == 1)
         {
-            // buf = SBUF;
-            // if (buf != '$')
-            // {
-            //     Buff[j] = buf;
-            //     j++;
-            // }
             Buff[i] = SBUF; //将接收到的字符串存到缓存中
             if (Buff[i] == '$')
             {
                 flag++;
             }
             i++; //缓存指针向后移动
-            if (flag == 2)
+            if (flag == 1)
             {
                 rev_data_status = 0;
                 i = 0;
