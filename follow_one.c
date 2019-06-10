@@ -6,6 +6,7 @@
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 'a'
+#define LCD1602_DB  P2  
 
 // #define led P1_0
 // #define led1 P1_1
