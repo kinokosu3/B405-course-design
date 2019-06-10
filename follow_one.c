@@ -1,11 +1,8 @@
 // #include <8052.h>
 #include <reg52.h>
 #include <intrins.h>
-//#include <STC12C5A.h>
 #include <string.h>
-// #include <ds18b20.h>
-// #include <AD.h>
-//#include <Time.h>
+
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 'a'
@@ -19,15 +16,15 @@
 // sbit led3 = P1 ^ 3;
 // sbit led4 = P1 ^ 4;
 uchar buf;
-// unsigned char Buff[50]; //数据缓冲区
-// uchar DATA[13] = {"hello world$"};
 uchar smod_buf[15];
 uchar temp_buf[15];
 uchar address_ok;
 uchar RECE_status;
 uchar address_status, command_status, i;
-
-/*---------------------------------------------------*/
+sbit LCD1602_RS = P0^7;  //1602液晶指令/数据选择引脚
+sbit LCD1602_RW = P0^6;  //1602液晶读写引脚
+sbit LCD1602_EN = P0^5;  //1602液晶使能引脚
+/*--------------------------头文件-------------------------*/
 sfr P1ASF = 0x9d;        //P1口模拟功能控制位    Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
                          //位描述                P17ASF  P16ASF  P15ASF  P14ASF  P13ASF  P12ASF  P11ASF  P10ASF
                          //初始值=0000,0000      0       0       0       0       0       0       0       0
@@ -48,7 +45,7 @@ sfr ADC_CONTR = 0xbc;    //ADC控制寄存器         Bit7    Bit6    Bit5    Bi
 #define ADC_CHS2 0x04    //ADC通道选择位2
 #define ADC_CHS1 0x02    //ADC通道选择位1
 #define ADC_CHS0 0x01    //ADC通道选择位0
-/*---------------------------------------------------*/
+/*-----------------------头文件----------------------------*/
 
 void delay_1ms(unsigned int i)
 {
@@ -260,7 +257,72 @@ void refreshTemp()
     temp_buf[4] = 'C';
     temp_buf[5] = '$';
 }
+/* --------------------------------------------LCD1602-----------------------------------------------------------------*/
+/* 等待液晶准备好 */
+void Lcd1602WaitReady()
+{
+    unsigned char sta;
+    
+    LCD1602_DB = 0xFF;
+    LCD1602_RS = 0;
+    LCD1602_RW = 1;
+    do {
+        LCD1602_EN = 1;
+        sta = LCD1602_DB; //读取状态字
+        LCD1602_EN = 0;
+    } while (sta & 0x80); //bit7等于1表示液晶正忙，重复检测直到其等于0为止
+}
+/* 向LCD1602液晶写入一字节命令，cmd-待写入命令值 */
+void Lcd1602WriteCmd(unsigned char cmd)
+{
+    Lcd1602WaitReady();
+    LCD1602_RS = 0;
+    LCD1602_RW = 0;
+    LCD1602_DB = cmd;
+    LCD1602_EN  = 1;
+    LCD1602_EN  = 0;
+}
+/* 向LCD1602液晶写入一字节数据，dat-待写入数据值 */
+void Lcd1602WriteDat(unsigned char dat)
+{
+    Lcd1602WaitReady();
+    LCD1602_RS = 1;
+    LCD1602_RW = 0;
+    LCD1602_DB = dat;
+    LCD1602_EN  = 1;
+    LCD1602_EN  = 0;
+}
+/* 设置显示RAM起始地址，亦即光标位置，(x,y)-对应屏幕上的字符坐标 */
+void Lcd1602SetCursor(unsigned char x, unsigned char y)
+{
+    unsigned char addr;
+    
+    if (y == 0)  //由输入的屏幕坐标计算显示RAM的地址
+        addr = 0x00 + x;  //第一行字符地址从0x00起始
+    else
+        addr = 0x40 + x;  //第二行字符地址从0x40起始
+    Lcd1602WriteCmd(addr | 0x80);  //设置RAM地址
+}
+/* 在液晶上显示字符串，(x,y)-对应屏幕上的起始坐标，str-字符串指针 */
+void Lcd1602ShowStr(unsigned char x, unsigned char y, unsigned char *str)
+{
+    Lcd1602SetCursor(x, y);   //设置起始地址
+    while (*str != '\0')  //连续写入字符串数据，直到检测到结束符
+    {
+        Lcd1602WriteDat(*str++);
+    }
+}
 
+/* 初始化1602液晶 */
+void InitLcd1602()
+{
+    Lcd1602WriteCmd(0x38);  //16*2显示，5*7点阵，8位数据接口
+    Lcd1602WriteCmd(0x0C);  //显示器开，光标关闭
+    Lcd1602WriteCmd(0x06);  //文字不动，地址自动+1
+    Lcd1602WriteCmd(0x01);  //清屏
+}
+
+/* --------------------------------------------LCD1602-----------------------------------------------------------------*/
 void init()
 {
     // SCON = 0x50;
@@ -310,14 +372,11 @@ void main(void)
         Adc_Action();
         refreshTemp(); //假设是实时的处理。
         // 发送数据
-        
-        //
-        // led2 = 0;
+
         Sends(smod_buf);
-        // delay_1ms(200);
         Sends(temp_buf);
-        // //delay_1ms(100);
-        // delay_1ms(2500); //2000 标志量
+        Lcd1602ShowStr(0, 0, smod_buf);
+        Lcd1602ShowStr(0, 1, temp_buf);
         delay_1ms(500);
     }
 }

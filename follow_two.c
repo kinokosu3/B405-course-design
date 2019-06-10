@@ -1,16 +1,11 @@
 // #include <8052.h>
 #include <reg52.h>
 #include <intrins.h>
-//#include <STC12C5A.h>
 #include <string.h>
-// #include <ds18b20.h>
-// #include <AD.h>
-//#include <Time.h>
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 'b'
-#define _SUCC_ 0x0f //数据传送成功
-#define _ERR_ 0xf0  //数据传送失败
+
 
 // #define led P1_0
 // #define led1 P1_1
@@ -21,9 +16,7 @@
 // sbit led3 = P1 ^ 3;
 // sbit led4 = P1 ^ 4;
 uchar buf;
-// unsigned char Buff[50]; //数据缓冲区
-// uchar DATA[13] = {"hello world$"};
-uchar smod_buf[15];
+uchar co_buf[15];
 uchar ch4_buf[15];
 uchar address_ok;
 uchar RECE_status;
@@ -116,26 +109,26 @@ void Adc_Action(void)
 {
     unsigned int adcx = 0;
     unsigned int adcy = 1;
-    float smodValue;
+    float coValue;
     float CH4Value;
 
     ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START; //配置ADC_CONTR寄存器 并启动AD转换
     adcx = DigitalFiltering(0);                      //将滤波后的AD值赋值给Value
     ADC_CONTR = 0; 
 
-    smodValue = (float)adcx * (4.8 / 1024);
-    smodValue = (smodValue - 2) * 2000; //0.4为测量空气的中甲烷浓度值时的数值
-    if (smodValue <= 0)
-        smodValue = 0;
-    adcx = smodValue;
-    smod_buf[0] = adcx % 10000 / 1000 + 0x30;
-    smod_buf[1] = adcx % 1000 / 100 + 0x30;
-    smod_buf[2] = adcx % 100 / 10 + 0x30;
-    smod_buf[3] = adcx % 10 + 0x30;
-    smod_buf[4] = 'p';
-    smod_buf[5] = 'p';
-    smod_buf[6] = 'm';
-    smod_buf[7] = '$';
+    coValue = (float)adcx * (4.8 / 1024);
+    coValue = (coValue - 2) * 2000; //0.4为测量空气的中甲烷浓度值时的数值
+    if (coValue <= 0)
+        coValue = 0;
+    adcx = coValue;
+    co_buf[0] = adcx % 10000 / 1000 + 0x30;
+    co_buf[1] = adcx % 1000 / 100 + 0x30;
+    co_buf[2] = adcx % 100 / 10 + 0x30;
+    co_buf[3] = adcx % 10 + 0x30;
+    co_buf[4] = 'p';
+    co_buf[5] = 'p';
+    co_buf[6] = 'm';
+    co_buf[7] = '$';
     
 
     ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START; //配置ADC_CONTR寄存器 并启动AD转换
@@ -156,7 +149,72 @@ void Adc_Action(void)
     ch4_buf[7] = '$';
     
 }
+/* --------------------------------------------LCD1602-----------------------------------------------------------------*/
+/* 等待液晶准备好 */
+void Lcd1602WaitReady()
+{
+    unsigned char sta;
+    
+    LCD1602_DB = 0xFF;
+    LCD1602_RS = 0;
+    LCD1602_RW = 1;
+    do {
+        LCD1602_EN = 1;
+        sta = LCD1602_DB; //读取状态字
+        LCD1602_EN = 0;
+    } while (sta & 0x80); //bit7等于1表示液晶正忙，重复检测直到其等于0为止
+}
+/* 向LCD1602液晶写入一字节命令，cmd-待写入命令值 */
+void Lcd1602WriteCmd(unsigned char cmd)
+{
+    Lcd1602WaitReady();
+    LCD1602_RS = 0;
+    LCD1602_RW = 0;
+    LCD1602_DB = cmd;
+    LCD1602_EN  = 1;
+    LCD1602_EN  = 0;
+}
+/* 向LCD1602液晶写入一字节数据，dat-待写入数据值 */
+void Lcd1602WriteDat(unsigned char dat)
+{
+    Lcd1602WaitReady();
+    LCD1602_RS = 1;
+    LCD1602_RW = 0;
+    LCD1602_DB = dat;
+    LCD1602_EN  = 1;
+    LCD1602_EN  = 0;
+}
+/* 设置显示RAM起始地址，亦即光标位置，(x,y)-对应屏幕上的字符坐标 */
+void Lcd1602SetCursor(unsigned char x, unsigned char y)
+{
+    unsigned char addr;
+    
+    if (y == 0)  //由输入的屏幕坐标计算显示RAM的地址
+        addr = 0x00 + x;  //第一行字符地址从0x00起始
+    else
+        addr = 0x40 + x;  //第二行字符地址从0x40起始
+    Lcd1602WriteCmd(addr | 0x80);  //设置RAM地址
+}
+/* 在液晶上显示字符串，(x,y)-对应屏幕上的起始坐标，str-字符串指针 */
+void Lcd1602ShowStr(unsigned char x, unsigned char y, unsigned char *str)
+{
+    Lcd1602SetCursor(x, y);   //设置起始地址
+    while (*str != '\0')  //连续写入字符串数据，直到检测到结束符
+    {
+        Lcd1602WriteDat(*str++);
+    }
+}
 
+/* 初始化1602液晶 */
+void InitLcd1602()
+{
+    Lcd1602WriteCmd(0x38);  //16*2显示，5*7点阵，8位数据接口
+    Lcd1602WriteCmd(0x0C);  //显示器开，光标关闭
+    Lcd1602WriteCmd(0x06);  //文字不动，地址自动+1
+    Lcd1602WriteCmd(0x01);  //清屏
+}
+
+/* --------------------------------------------LCD1602-----------------------------------------------------------------*/
 
 void init()
 {
@@ -205,15 +263,17 @@ void main(void)
         SM2 = 0; //开始接收数据帧
 
         Adc_Action();
-        //refreshTemp();
+        
         // 发送数据
         
-        // led2 = 0;
+        
         Sends(smod_buf);
         
         Sends(ch4_buf);
-        // //delay_1ms(100);
-        delay_1ms(480); //2000 标志量
+        
+        Lcd1602ShowStr(0, 0, smod_buf);
+        Lcd1602ShowStr(0, 1, temp_buf);
+        delay_1ms(480); 
     }
 }
 

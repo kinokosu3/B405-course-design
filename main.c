@@ -1,9 +1,6 @@
 // #include <8052.h>
 #include <reg52.h>
 #include <string.h>
-//#include "STC12C5A.h"
-// #include "Lcd1602.h"
-// #include "config.h"
 #define uchar unsigned char
 #define uint unsigned int
 volatile unsigned char sending;
