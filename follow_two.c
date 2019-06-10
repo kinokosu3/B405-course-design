@@ -201,7 +201,7 @@ void main(void)
         while (!TI)
             ;
         TI = 0;
-
+        delay_1ms(250);
         SM2 = 0; //开始接收数据帧
 
         Adc_Action();
@@ -210,10 +210,10 @@ void main(void)
         
         // led2 = 0;
         Sends(smod_buf);
-        delay_1ms(100);
+        
         Sends(ch4_buf);
         // //delay_1ms(100);
-        delay_1ms(2700); //2000 标志量
+        delay_1ms(480); //2000 标志量
     }
 }
 
