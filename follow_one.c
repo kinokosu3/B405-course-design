@@ -304,19 +304,21 @@ void main(void)
         while (!TI)
             ;
         TI = 0;
-
+        delay_1ms(250);
         SM2 = 0; //开始接收数据帧
 
         Adc_Action();
-        refreshTemp();
+        refreshTemp(); //假设是实时的处理。
         // 发送数据
         
+        //
         // led2 = 0;
         Sends(smod_buf);
         // delay_1ms(200);
         Sends(temp_buf);
         // //delay_1ms(100);
-        delay_1ms(2500); //2000 标志量
+        // delay_1ms(2500); //2000 标志量
+        delay_1ms(500);
     }
 }
 
