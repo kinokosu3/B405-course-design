@@ -1,5 +1,6 @@
 // #include <8052.h>
 #include <reg52.h>
+#include <intrins.h>
 //#include <STC12C5A.h>
 #include <string.h>
 // #include <ds18b20.h>
@@ -8,8 +9,6 @@
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 'a'
-#define _SUCC_ 0x0f //数据传送成功
-#define _ERR_ 0xf0  //数据传送失败
 
 // #define led P1_0
 // #define led1 P1_1
@@ -29,27 +28,28 @@ uchar RECE_status;
 uchar address_status, command_status, i;
 
 /*---------------------------------------------------*/
-sfr P1ASF = 0x9d; //P1口模拟功能控制位    Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
-                  //位描述                P17ASF  P16ASF  P15ASF  P14ASF  P13ASF  P12ASF  P11ASF  P10ASF
-                  //初始值=0000,0000      0       0       0       0       0       0       0       0
-sfr  ADC_RES    =   0xbd;       //ADC结果高字节         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
-                                //初始值=0000,0000      0       0       0       0       0       0       0       0
-sfr  ADC_RESL   =   0xbe;       //ADC结果低字节         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
-                                //初始值=0000,0000      0       0       0       0       0       0       0       0                                
-sfr  ADC_CONTR  =   0xbc;       //ADC控制寄存器         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
-                                //位描述            ADC_POWER  SPEED1 SPEED0 ADC_FLAG ADC_START CHS2    CHS1    CHS0
-                                //初始值=0000,0000      0       0       0       0       0       0       0       0
-#define ADC_POWER   0x80        //ADC模块电源控制位
-#define ADC_SPEEDLL 0x00        //每次转换需要420个时钟周期
-#define ADC_SPEEDL  0x20        //每次转换需要280个时钟周期
-#define ADC_SPEEDH  0x40        //每次转换需要140个时钟周期
-#define ADC_SPEEDHH 0x60        //每次转换需要70个时钟周期
-#define ADC_FLAG    0x10        //ADC转换完成标志
-#define ADC_START   0x08        //ADC开始转换控制位
-#define ADC_CHS2    0x04        //ADC通道选择位2
-#define ADC_CHS1    0x02        //ADC通道选择位1
-#define ADC_CHS0    0x01        //ADC通道选择位0
+sfr P1ASF = 0x9d;        //P1口模拟功能控制位    Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
+                         //位描述                P17ASF  P16ASF  P15ASF  P14ASF  P13ASF  P12ASF  P11ASF  P10ASF
+                         //初始值=0000,0000      0       0       0       0       0       0       0       0
+sfr ADC_RES = 0xbd;      //ADC结果高字节         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
+                         //初始值=0000,0000      0       0       0       0       0       0       0       0
+sfr ADC_RESL = 0xbe;     //ADC结果低字节         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
+                         //初始值=0000,0000      0       0       0       0       0       0       0       0
+sfr ADC_CONTR = 0xbc;    //ADC控制寄存器         Bit7    Bit6    Bit5    Bit4    Bit3    Bit2    Bit1    Bit0
+                         //位描述            ADC_POWER  SPEED1 SPEED0 ADC_FLAG ADC_START CHS2    CHS1    CHS0
+                         //初始值=0000,0000      0       0       0       0       0       0       0       0
+#define ADC_POWER 0x80   //ADC模块电源控制位
+#define ADC_SPEEDLL 0x00 //每次转换需要420个时钟周期
+#define ADC_SPEEDL 0x20  //每次转换需要280个时钟周期
+#define ADC_SPEEDH 0x40  //每次转换需要140个时钟周期
+#define ADC_SPEEDHH 0x60 //每次转换需要70个时钟周期
+#define ADC_FLAG 0x10    //ADC转换完成标志
+#define ADC_START 0x08   //ADC开始转换控制位
+#define ADC_CHS2 0x04    //ADC通道选择位2
+#define ADC_CHS1 0x02    //ADC通道选择位1
+#define ADC_CHS0 0x01    //ADC通道选择位0
 /*---------------------------------------------------*/
+
 void delay_1ms(unsigned int i)
 {
     unsigned int x, y;
@@ -119,7 +119,7 @@ void Adc_Action(void)
     adcx = DigitalFiltering(0);                      //将滤波后的AD值赋值给Value
     ADC_CONTR = 0;
     smodValue = (float)adcx * (4.8 / 1024);
-    smodValue = (smodValue - 1.5) * 2000; //0.4为测量空气的中甲烷浓度值时的数值
+    smodValue = (smodValue - 2) * 2000; //0.4为测量空气的中甲烷浓度值时的数值
     if (smodValue <= 0)
         smodValue = 0;
     adcx = smodValue;
@@ -133,25 +133,133 @@ void Adc_Action(void)
     smod_buf[7] = '$';
 }
 
-// void refreshTemp()
-// {
-//     int intT, decT, temp;
-//     bit res = 0;
-//     res = Get18B20Temp(&temp); //第一个DS18B20读取当前温度
-//     Start18B20();              //启动DS18B20
-//     if (res)                   //读取成功时，刷新当前温度显示
-//     {
-//         intT = temp >> 4;         //分离出温度值整数部分
-//         decT = temp & 0xF;        //分离出温度值小数部分
-//         decT = (decT * 100) / 16; //二进制的小数部分转换为1位十进制位
-//     }
-//     temp_buf[0] = intT % 100 / 10 + 0x30;
-//     temp_buf[1] = intT % 10 + 0x30;
-//     temp_buf[2] = '.';
-//     temp_buf[3] = decT % 100 / 10 + 0x30;
-//     temp_buf[4] = 'C';
-//     temp_buf[5] = '$';
-// }
+sbit IO_18B20 = P3 ^ 7; //DS18B20通信引脚
+
+/* STC12系列单片机在12M晶振下产生指定us数的软件延时 */
+void Delay_us(unsigned char us)
+{
+    do
+    {
+        _nop_();
+        _nop_();
+        _nop_();
+        _nop_();
+        _nop_();
+        _nop_();
+        _nop_();
+        _nop_();
+    } while (--us);
+}
+/* 复位总线，获取存在脉冲，以启动一次读写操作 */
+bit Get18B20Ack()
+{
+    bit ack;
+
+    EA = 0;       //禁止总中断
+    IO_18B20 = 0; //产生500us复位脉冲
+    Delay_us(250);
+    Delay_us(250);
+    IO_18B20 = 1;
+    Delay_us(60);   //延时60us
+    ack = IO_18B20; //读取存在脉冲
+    while (!IO_18B20)
+        ;   //等待存在脉冲结束
+    EA = 1; //重新使能总中断
+
+    return ack;
+}
+/* 向DS18B20写入一个字节，dat-待写入字节 */
+void Write18B20(unsigned char dat)
+{
+    unsigned char mask;
+
+    EA = 0;                                  //禁止总中断
+    for (mask = 0x01; mask != 0; mask <<= 1) //低位在先，依次移出8个bit
+    {
+        IO_18B20 = 0; //产生2us低电平脉冲
+        Delay_us(2);
+        if ((mask & dat) == 0) //输出该bit值
+            IO_18B20 = 0;
+        else
+            IO_18B20 = 1;
+        Delay_us(60); //延时60us
+        IO_18B20 = 1; //拉高通信引脚
+    }
+    EA = 1; //重新使能总中断
+}
+/* 从DS18B20读取一个字节，返回值-读到的字节 */
+unsigned char Read18B20()
+{
+    unsigned char dat;
+    unsigned char mask;
+
+    EA = 0;                                  //禁止总中断
+    for (mask = 0x01; mask != 0; mask <<= 1) //低位在先，依次采集8个bit
+    {
+        IO_18B20 = 0; //产生2us低电平脉冲
+        Delay_us(2);
+        IO_18B20 = 1;  //结束低电平脉冲，等待18B20输出数据
+        Delay_us(2);   //延时2us
+        if (!IO_18B20) //读取通信引脚上的值
+            dat &= ~mask;
+        else
+            dat |= mask;
+        Delay_us(60); //再延时60us
+    }
+    EA = 1; //重新使能总中断
+
+    return dat;
+}
+/* 启动一次18B20温度转换，返回值-表示是否启动成功 */
+bit Start18B20()
+{
+    bit ack;
+
+    ack = Get18B20Ack(); //执行总线复位，并获取18B20应答
+    if (ack == 0)        //如18B20正确应答，则启动一次转换
+    {
+        Write18B20(0xCC); //跳过ROM操作
+        Write18B20(0x44); //启动一次温度转换
+    }
+    return ~ack; //ack==0表示操作成功，所以返回值对其取反
+}
+/* 读取DS18B20转换的温度值，返回值-表示是否读取成功 */
+bit Get18B20Temp(int *temp)
+{
+    bit ack;
+    unsigned char LSB, MSB; //16bit温度值的低字节和高字节
+
+    ack = Get18B20Ack(); //执行总线复位，并获取18B20应答
+    if (ack == 0)        //如18B20正确应答，则读取温度值
+    {
+        Write18B20(0xCC);              //跳过ROM操作
+        Write18B20(0xBE);              //发送读命令
+        LSB = Read18B20();             //读温度值的低字节
+        MSB = Read18B20();             //读温度值的高字节
+        *temp = ((int)MSB << 8) + LSB; //合成为16bit整型数
+    }
+    return ~ack; //ack==0表示操作应答，所以返回值为其取反值
+}
+int intT, decT, temp;
+bit res = 0;
+void refreshTemp()
+{
+    
+    res = Get18B20Temp(&temp); //第一个DS18B20读取当前温度
+    Start18B20();              //启动DS18B20
+    if (res)                   //读取成功时，刷新当前温度显示
+    {
+        intT = temp >> 4;         //分离出温度值整数部分
+        decT = temp & 0xF;        //分离出温度值小数部分
+        decT = (decT * 100) / 16; //二进制的小数部分转换为1位十进制位
+    }
+    temp_buf[0] = intT % 100 / 10 + 0x30;
+    temp_buf[1] = intT % 10 + 0x30;
+    temp_buf[2] = '.';
+    temp_buf[3] = decT % 100 / 10 + 0x30;
+    temp_buf[4] = 'C';
+    temp_buf[5] = '$';
+}
 
 void init()
 {
@@ -188,7 +296,6 @@ void main(void)
 
         SM2 = 1;
         address_status = 1;
-        command_status = 0;
         address_ok = 1;
         // led1 = 1;
         while (address_ok)
@@ -198,21 +305,18 @@ void main(void)
             ;
         TI = 0;
 
-
         SM2 = 0; //开始接收数据帧
-        command_status = 1;
-        
+
         Adc_Action();
+        refreshTemp();
         // 发送数据
-        delay_1ms(250);
-        if (buf == 'c')
-        {
-            // led2 = 0;
-            Sends(smod_buf);
-            // //delay_1ms(100);
-            //Sends(temp_buf);
-            // //delay_1ms(100);
-        }
+        
+        // led2 = 0;
+        Sends(smod_buf);
+        // delay_1ms(200);
+        Sends(temp_buf);
+        // //delay_1ms(100);
+        delay_1ms(2500); //2000 标志量
     }
 }
 
@@ -232,11 +336,6 @@ void serial() interrupt 4
                 address_ok = 0;
                 address_status = 0;
             }
-        }
-        if (command_status == 1)
-        {
-            buf = SBUF;
-            command_status = 0;
         }
         RI = 0;
     }
