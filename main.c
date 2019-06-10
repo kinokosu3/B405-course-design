@@ -23,10 +23,12 @@ sbit led3 = P1 ^ 3;
 sbit led4 = P1 ^ 4;
 sbit led5 = P1 ^ 5;
 sbit led6 = P1 ^ 6;
+sbit bee = P3 ^ 6;
 uchar address_ok, flag;
 uchar status, t0_num = 0, time_out;
 uchar add_flag, address_repeat_flag = 0, rev_data_status, j = 0;
-uchar i = 0,address_error=0;
+uchar i = 0, address_error = 0;
+uint warning_cout = 0;
 void delay_1ms(unsigned int i)
 {
     unsigned int x, y;
@@ -69,7 +71,7 @@ void Leasts_Sends(char *Buff)
 
 void Clear_Buf(void)
 {
-    memset(Buff, 0, (BUFF_MAX*sizeof(Buff)));
+    memset(Buff, 0, (BUFF_MAX * sizeof(Buff)));
 }
 
 void main()
@@ -82,32 +84,38 @@ void main()
         add_flag = 1;
         buf = 0xff;
         rev_data_status = 0;
-        led3=1;
-    
+        led3 = 1;
+
+        warning_cout = 0;
         while (add_flag) // 轮询地址
         {
-            led1=1;
-            led2=1;
-            if(address_repeat_flag != 1 && address_repeat_flag != 0){
+            led1 = 1;
+            led2 = 1;
+            if (address_repeat_flag != 1 && address_repeat_flag != 0)
+            {
                 address_error++;
-                if(address_error == 1){
-                address_repeat_flag = 0;}else if(address_error == 2){
-                    address_repeat_flag=1;
-                    address_error=0;
+                if (address_error == 1)
+                {
+                    address_repeat_flag = 0;
+                }
+                else if (address_error == 2)
+                {
+                    address_repeat_flag = 1;
+                    address_error = 0;
                 }
             }
             if (address_repeat_flag == 0)
             {
-                led2=1;
+                led2 = 1;
                 TB8 = 1;
                 SBUF = addr1;
                 while (!TI)
                     ;
                 TI = 0;
             }
-            else if(address_repeat_flag == 1)
+            else if (address_repeat_flag == 1)
             {
-                
+
                 TB8 = 1;
                 SBUF = addr2;
                 while (!TI)
@@ -125,8 +133,14 @@ void main()
                 led = 1;
             }
             // address_repeat_flag = ~address_repeat_flag;
-            if(address_repeat_flag == 0){address_repeat_flag = 1;}
-            else if(address_repeat_flag == 1){address_repeat_flag = 0;}
+            if (address_repeat_flag == 0)
+            {
+                address_repeat_flag = 1;
+            }
+            else if (address_repeat_flag == 1)
+            {
+                address_repeat_flag = 0;
+            }
         }
         led = 0;
 
@@ -134,8 +148,25 @@ void main()
         flag = 0;
         delay_1ms(500); //500 较稳
 
-        if (rev_data_status == 0)
-        { //发送数据到上位
+        //发送数据到上位
+        // 报警
+
+        // if (rev_data_status == 1){
+        //     warning_cout = Buff[0] * 1000 + warning_cout;
+        //     warning_cout = Buff[1] * 100 + warning_cout;
+        //     warning_cout = Buff[2] * 10 + warning_cout;
+        //     warning_cout = Buff[3] + warning_cout;
+        //     if(warning_cout > 500){
+        //         bee = 0;
+        //         delay_1ms(250); //500 较稳
+        //     }else{
+        //         bee = 1;
+        //         delay_1ms(250); //500 较稳
+        //     }
+        // }
+        if (address_repeat_flag == 0)
+        {
+
             led3 = 0;
             if (strstr(Buff, "ppm") != NULL)
                 led4 = 0;
@@ -159,15 +190,15 @@ void uart() interrupt 4
             {
                 if (buf == addr1)
                 {
-                    led1=0;
+                    led1 = 0;
                     address_ok = 1;
                 }
             }
-            else if(address_repeat_flag == 1)
+            else if (address_repeat_flag == 1)
             {
                 if (buf == addr2)
                 {
-                    led2=0;
+                    led2 = 0;
                     address_ok = 1;
                 }
             }

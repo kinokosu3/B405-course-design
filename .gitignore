@@ -9,3 +9,6 @@
 *.sym
 *.asm
 *.ihx
+follow_one.hex
+follow_two.hex
+main.hex

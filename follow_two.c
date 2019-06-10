@@ -5,7 +5,11 @@
 #define uchar unsigned char
 #define uint unsigned int
 #define addr1 'b'
-#define LCD1602_DB  P2
+#define LCD1602_DB  P2   //1602液晶数据端口
+
+sbit LCD1602_RS = P0^7;  //1602液晶指令/数据选择引脚
+sbit LCD1602_RW = P0^6;  //1602液晶读写引脚
+sbit LCD1602_EN = P0^5;  //1602液晶使能引脚
 
 // #define led P1_0
 // #define led1 P1_1
@@ -149,6 +153,7 @@ void Adc_Action(void)
     ch4_buf[7] = '$';
     
 }
+
 /* --------------------------------------------LCD1602-----------------------------------------------------------------*/
 /* 等待液晶准备好 */
 void Lcd1602WaitReady()
@@ -246,6 +251,7 @@ void main(void)
 {
     init();
     InitADC();
+    InitLcd1602();
     while (1)
     {
 
@@ -265,15 +271,15 @@ void main(void)
         Adc_Action();
         
         // 发送数据
-        
-        
-        Sends(smod_buf);
+
+        Sends(co_buf);
         
         Sends(ch4_buf);
         
-        Lcd1602ShowStr(0, 0, smod_buf);
-        Lcd1602ShowStr(0, 1, temp_buf);
-        delay_1ms(480); 
+        Lcd1602ShowStr(0, 0, co_buf);
+        delay_1ms(100);
+        Lcd1602ShowStr(0, 1, ch4_buf);
+        delay_1ms(380); 
     }
 }
 

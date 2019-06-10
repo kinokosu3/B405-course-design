@@ -354,6 +354,7 @@ void main(void)
 {
     init();
     InitADC();
+    InitLcd1602();
     while (1)
     {
 
@@ -377,8 +378,9 @@ void main(void)
         Sends(smod_buf);
         Sends(temp_buf);
         Lcd1602ShowStr(0, 0, smod_buf);
+        delay_1ms(100);
         Lcd1602ShowStr(0, 1, temp_buf);
-        delay_1ms(500);
+        delay_1ms(400);
     }
 }
 
